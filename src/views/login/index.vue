@@ -53,37 +53,22 @@
 </template>
 
 <script>
-import { validUsername } from '@/utils/validate'
 
 export default {
   name: 'Login',
   data() {
-    const validateUsername = (rule, value, callback) => {
-      if (!validUsername(value)) {
-        callback(new Error('Please enter the correct user name'))
-      } else {
-        callback()
-      }
-    }
-    const validatePassword = (rule, value, callback) => {
-      if (value.length < 6) {
-        callback(new Error('The password can not be less than 6 digits'))
-      } else {
-        callback()
-      }
-    }
     return {
       loginForm: {
-        username: 'admin',
-        password: '111111'
-      },
-      loginRules: {
-        username: [{ required: true, trigger: 'blur', validator: validateUsername }],
-        password: [{ required: true, trigger: 'blur', validator: validatePassword }]
+        username: '',
+        password: ''
       },
       loading: false,
+      redirect: undefined,
       passwordType: 'password',
-      redirect: undefined
+      loginRules: {
+        username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+        password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+      }
     }
   },
   watch: {
@@ -110,9 +95,14 @@ export default {
         if (valid) {
           this.loading = true
           this.$store.dispatch('user/login', this.loginForm).then(() => {
-            this.$router.push({ path: this.redirect || '/' })
-            this.loading = false
-          }).catch(() => {
+            this.$store.dispatch('user/getInfo').then(() => {
+              this.$router.push({ path: this.redirect || '/' })
+              this.$message.success('登录成功，Token已保存')
+            })
+          }).catch(err => {
+            console.error('Login error:', err)
+            this.$message.error('用户名或密码错误')
+          }).finally(() => {
             this.loading = false
           })
         } else {

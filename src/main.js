@@ -1,4 +1,5 @@
 import Vue from 'vue'
+import axios from 'axios'
 
 import 'normalize.css/normalize.css' // A modern alternative to CSS resets
 
@@ -34,6 +35,7 @@ Vue.use(ElementUI, { locale })
 // Vue.use(ElementUI)
 
 Vue.config.productionTip = false
+Vue.prototype.$axios = axios
 
 new Vue({
   el: '#app',

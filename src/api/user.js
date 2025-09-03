@@ -2,23 +2,24 @@ import request from '@/utils/request'
 
 export function login(data) {
   return request({
-    url: '/vue-admin-template/user/login',
+    url: '/v1/login', // 不要写 /api
     method: 'post',
     data
   })
 }
 
-export function getInfo(token) {
+export function logout(token) {
   return request({
-    url: '/vue-admin-template/user/info',
-    method: 'get',
-    params: { token }
+    url: '/v1/logout',
+    method: 'post',
+    headers: { Authorization: 'Bearer ' + token }
   })
 }
 
-export function logout() {
+export function getInfo(token) {
   return request({
-    url: '/vue-admin-template/user/logout',
-    method: 'post'
+    url: '/v1/getinfo',
+    method: 'get',
+    headers: { Authorization: 'Bearer ' + token }
   })
 }
