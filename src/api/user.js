@@ -2,7 +2,7 @@ import request from '@/utils/request'
 
 export function login(data) {
   return request({
-    url: '/v1/login', // 不要写 /api
+    url: '/v1/login', // 不要写 /api///
     method: 'post',
     data
   })

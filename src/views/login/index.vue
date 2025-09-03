@@ -97,7 +97,7 @@ export default {
           this.$store.dispatch('user/login', this.loginForm).then(() => {
             this.$store.dispatch('user/getInfo').then(() => {
               this.$router.push({ path: this.redirect || '/' })
-              this.$message.success('登录成功，Token已保存')
+              // this.$message.success('登录成功，Token已保存')
             })
           }).catch(err => {
             console.error('Login error:', err)
