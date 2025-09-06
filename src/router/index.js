@@ -1,5 +1,7 @@
 import Vue from 'vue'
 import Router from 'vue-router'
+import store from '@/store'
+import { getToken } from '@/utils/auth' // Import getToken function
 
 Vue.use(Router)
 
@@ -34,12 +36,6 @@ export const constantRoutes = [
   {
     path: '/login',
     component: () => import('@/views/login/index'),
-    hidden: true
-  },
-
-  {
-    path: '/404',
-    component: () => import('@/views/404'),
     hidden: true
   },
 
@@ -150,6 +146,19 @@ export const constantRoutes = [
   },
 
   {
+    path: '/about',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'About',
+        component: () => import('@/views/about/index'),
+        meta: { title: 'About', icon: 'el-icon-info' }
+      }
+    ]
+  },
+
+  {
     path: 'external-link',
     component: Layout,
     children: [
@@ -158,10 +167,22 @@ export const constantRoutes = [
         meta: { title: 'External Link', icon: 'link' }
       }
     ]
-  },
+  }
+]
 
-  // 404 page must be placed at the end !!!
-  { path: '*', redirect: '/404', hidden: true }
+export const asyncRoutes = [
+  {
+    path: '/permission',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'Permission',
+        component: () => import('@/views/permission/index'),
+        meta: { title: 'Permission', icon: 'el-icon-lock', roles: ['admin'] }
+      }
+    ]
+  }
 ]
 
 const createRouter = () => new Router({
@@ -179,3 +200,38 @@ export function resetRouter() {
 }
 
 export default router
+
+// Define routes that do not require authentication
+const whiteList = ['/login', '/404']
+
+router.beforeEach(async(to, from, next) => {
+  const hasToken = getToken()
+  if (hasToken) {
+    if (to.path === '/login') {
+      next({ path: '/' })
+    } else {
+      if (store.getters.roles && store.getters.roles.length > 0) {
+        next()
+      } else {
+        try {
+          const user = await store.dispatch('user/getInfo')
+          const roles = user.roles || (user.role ? [user.role] : ['user'])
+          const accessRoutes = await store.dispatch('permission/generateRoutes', roles)
+          router.addRoutes(accessRoutes)
+          // 只在这里添加一次 404 路由
+          router.addRoutes([{ path: '*', redirect: '/404', hidden: true }])
+          next({ ...to, replace: true })
+        } catch (error) {
+          await store.dispatch('user/resetToken')
+          next(`/login?redirect=${to.path}`)
+        }
+      }
+    }
+  } else {
+    if (whiteList.indexOf(to.path) !== -1) {
+      next()
+    } else {
+      next('/login')
+    }
+  }
+})

@@ -66,8 +66,8 @@ export default {
       redirect: undefined,
       passwordType: 'password',
       loginRules: {
-        username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-        password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+        username: [{ required: true, message: 'Please enter username', trigger: 'blur' }],
+        password: [{ required: true, message: 'Please enter password', trigger: 'blur' }]
       }
     }
   },
@@ -95,13 +95,11 @@ export default {
         if (valid) {
           this.loading = true
           this.$store.dispatch('user/login', this.loginForm).then(() => {
-            this.$store.dispatch('user/getInfo').then(() => {
-              this.$router.push({ path: this.redirect || '/' })
-              // this.$message.success('登录成功，Token已保存')
-            })
+            // 不要手动调用 getInfo，直接跳转
+            this.$router.push({ path: this.redirect || '/' })
           }).catch(err => {
             console.error('Login error:', err)
-            this.$message.error('用户名或密码错误')
+            this.$message.error('Incorrect username or password')
           }).finally(() => {
             this.loading = false
           })
@@ -140,6 +138,7 @@ $cursor: #fff;
       background: transparent;
       border: 0px;
       -webkit-appearance: none;
+      appearance: none; /* 标准写法，兼容所有浏览器 */
       border-radius: 0px;
       padding: 12px 5px 12px 15px;
       color: $light_gray;

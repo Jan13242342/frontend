@@ -31,12 +31,18 @@ router.beforeEach(async(to, from, next) => {
         next()
       } else {
         try {
-          // get user info
-          await store.dispatch('user/getInfo')
-
-          next()
+          // 1. 获取用户信息
+          const user = await store.dispatch('user/getInfo')
+          // 2. 兼容 roles 和 role
+          const roles = user.roles || (user.role ? [user.role] : ['user'])
+          // 3. 生成权限路由
+          const accessRoutes = await store.dispatch('permission/generateRoutes', roles)
+          // 4. 动态挂载路由
+          router.addRoutes(accessRoutes)
+          // 5. 确保 addRoute 完成后再跳转
+          next({ ...to, replace: true })
         } catch (error) {
-          // remove token and go to login page to re-login
+          console.error('getInfo error:', error)
           await store.dispatch('user/resetToken')
           Message.error(error || 'Has Error')
           next(`/login?redirect=${to.path}`)

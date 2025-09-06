@@ -25,14 +25,14 @@ const actions = {
     })
   },
 
-  getInfo({ commit, state }) {
-    return getInfo(state.token).then(response => {
-      const data = response.data
-      commit('SET_NAME', data.username || data.email || 'User')
-      commit('SET_AVATAR', data.avatar || 'https://avatars.githubusercontent.com/u/0?v=4')
-      commit('SET_ROLES', [data.role || 'user']) // 默认角色为 'user'
-      return data
-    })
+  async getInfo({ commit, state }) {
+    const response = await getInfo(state.token)
+    const data = response.data
+    const roles = data.roles || (data.role ? [data.role] : ['user'])
+    commit('SET_ROLES', roles)
+    commit('SET_NAME', data.username)
+    commit('SET_AVATAR', data.avatar || '')
+    return { ...data, roles }
   },
 
   logout({ commit, state }) {
