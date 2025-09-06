@@ -1,20 +1,25 @@
 <template>
-  <div class="about-page">
-    <h1>About Page</h1>
+  <div class="admin-page">
+    <h1>管理员中心</h1>
     <p style="color: #e67e22; margin-top: 32px;">
-      test 😄
+      欢迎来到管理员专属页面！😄
     </p>
+    <ul>
+      <li>用户管理</li>
+      <li>系统设置</li>
+      <li>权限分配</li>
+    </ul>
   </div>
 </template>
 
 <script>
 export default {
-  name: 'About'
+  name: 'AdminPage'
 }
 </script>
 
 <style scoped>
-.about-page {
+.admin-page {
   max-width: 600px;
   margin: 40px auto;
   background: #fff;
@@ -22,14 +27,15 @@ export default {
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
-.about-page h1 {
+.admin-page h1 {
   margin-bottom: 16px;
+  color: #e67e22;
 }
-.about-page ul {
+.admin-page ul {
   margin: 16px 0;
   padding-left: 20px;
 }
-.about-page li {
+.admin-page li {
   margin-bottom: 8px;
 }
 </style>

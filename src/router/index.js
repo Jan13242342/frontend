@@ -179,7 +179,31 @@ export const asyncRoutes = [
         path: 'index',
         name: 'Permission',
         component: () => import('@/views/permission/index'),
-        meta: { title: 'Permission', icon: 'el-icon-lock', roles: ['admin'] }
+        meta: { title: 'Permission', icon: 'el-icon-lock', roles: ['admin', 'service'] }
+      }
+    ]
+  },
+  {
+    path: '/admin',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'Admin',
+        component: () => import('@/views/admin/index'),
+        meta: { title: 'Admin', icon: 'el-icon-user', roles: ['admin'] }
+      }
+    ]
+  },
+  {
+    path: '/service',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'Service',
+        component: () => import('@/views/service/index'),
+        meta: { title: 'Service', icon: 'el-icon-service', roles: ['admin', 'service'] }
       }
     ]
   }
@@ -208,7 +232,7 @@ router.beforeEach(async(to, from, next) => {
   const hasToken = getToken()
   if (hasToken) {
     if (to.path === '/login') {
-      next({ path: '/' })
+      next({ path: '/dashboard' }) // 登录后默认跳转到 dashboard
     } else {
       if (store.getters.roles && store.getters.roles.length > 0) {
         next()
@@ -218,7 +242,6 @@ router.beforeEach(async(to, from, next) => {
           const roles = user.roles || (user.role ? [user.role] : ['user'])
           const accessRoutes = await store.dispatch('permission/generateRoutes', roles)
           router.addRoutes(accessRoutes)
-          // 只在这里添加一次 404 路由
           router.addRoutes([{ path: '*', redirect: '/404', hidden: true }])
           next({ ...to, replace: true })
         } catch (error) {

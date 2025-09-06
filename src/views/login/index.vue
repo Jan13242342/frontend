@@ -96,7 +96,8 @@ export default {
           this.loading = true
           this.$store.dispatch('user/login', this.loginForm).then(() => {
             // 不要手动调用 getInfo，直接跳转
-            this.$router.push({ path: this.redirect || '/' })
+            // 登录后始终跳转 dashboard
+            this.$router.push({ path: '/dashboard' })
           }).catch(err => {
             console.error('Login error:', err)
             this.$message.error('Incorrect username or password')
