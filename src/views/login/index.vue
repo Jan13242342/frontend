@@ -43,10 +43,7 @@
 
       <el-button :loading="loading" type="primary" style="width:100%;margin-bottom:30px;" @click.native.prevent="handleLogin">Login</el-button>
 
-      <div class="tips">
-        <span style="margin-right:20px;">username: admin</span>
-        <span> password: any</span>
-      </div>
+      <el-button type="text" style="width:100%;margin-bottom:10px;" @click="goRegister">Don't have an account? Register</el-button>
 
     </el-form>
   </div>
@@ -109,6 +106,9 @@ export default {
           return false
         }
       })
+    },
+    goRegister() {
+      this.$router.push({ path: '/register' })
     }
   }
 }

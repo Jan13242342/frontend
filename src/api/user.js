@@ -23,3 +23,19 @@ export function getInfo(token) {
     headers: { Authorization: 'Bearer ' + token }
   })
 }
+
+export function sendRegisterEmailCode(email) {
+  return request({
+    url: 'v1/send_email_code_register',
+    method: 'post',
+    data: { email }
+  })
+}
+
+export function register(data) {
+  return request({
+    url: 'v1/register',
+    method: 'post',
+    data
+  })
+}

@@ -38,6 +38,11 @@ export const constantRoutes = [
     component: () => import('@/views/login/index'),
     hidden: true
   },
+  {
+    path: '/register',
+    component: () => import('@/views/register/index.vue'),
+    hidden: true
+  },
 
   {
     path: '/',
@@ -226,13 +231,20 @@ export function resetRouter() {
 export default router
 
 // Define routes that do not require authentication
-const whiteList = ['/login', '/404']
+const whiteList = ['/login', '/register', '/404']
 
 router.beforeEach(async(to, from, next) => {
+  console.log('beforeEach to.path:', to.path)
+  if (whiteList.includes(to.path)) {
+    console.log('in whiteList, next()')
+    next()
+    return
+  }
   const hasToken = getToken()
+  console.log('hasToken:', hasToken)
   if (hasToken) {
     if (to.path === '/login') {
-      next({ path: '/dashboard' }) // 登录后默认跳转到 dashboard
+      next({ path: '/dashboard' })
     } else {
       if (store.getters.roles && store.getters.roles.length > 0) {
         next()
@@ -251,10 +263,7 @@ router.beforeEach(async(to, from, next) => {
       }
     }
   } else {
-    if (whiteList.indexOf(to.path) !== -1) {
-      next()
-    } else {
-      next('/login')
-    }
+    console.log('not in whiteList, no token, next(/login)')
+    next('/login')
   }
 })
