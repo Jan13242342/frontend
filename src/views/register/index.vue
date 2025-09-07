@@ -133,7 +133,14 @@ export default {
         console.log('Verification code:', res.data.code)
         this.$message.success('Verification code sent to your email')
       } catch (e) {
-        this.$message.error(e?.response?.data?.msg || 'Failed to send code')
+        const msg =
+          e?.response?.data?.msg_en ||
+          e?.response?.data?.detail?.msg_en ||
+          e?.response?.data?.msg ||
+          e?.response?.data?.detail?.msg ||
+          e?.message ||
+          'Failed to send code'
+        this.$message.error(msg)
         this.emailSending = false
         return
       }
