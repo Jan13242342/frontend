@@ -203,12 +203,19 @@ export const asyncRoutes = [
   {
     path: '/service',
     component: Layout,
+    meta: { title: 'Service', icon: 'el-icon-service', roles: ['service', 'admin'] },
     children: [
       {
-        path: 'index',
-        name: 'Service',
-        component: () => import('@/views/service/index'),
-        meta: { title: 'Service', icon: 'el-icon-service', roles: ['admin', 'service'] }
+        path: 'parameter',
+        name: 'Parameter',
+        component: () => import('@/views/service/parameter.vue'),
+        meta: { title: 'Parameter', roles: ['service', 'admin'] }
+      },
+      {
+        path: 'remote-procedure-call',
+        name: 'RemoteProcedureCall',
+        component: () => import('@/views/service/remote-procedure-call.vue'),
+        meta: { title: 'Remote Procedure Call', roles: ['service', 'admin'] }
       }
     ]
   }

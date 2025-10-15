@@ -39,3 +39,12 @@ export function register(data) {
     data
   })
 }
+
+export function getDevicePara(token, params) {
+  return request({
+    url: 'v1/device/para',
+    method: 'get',
+    params,
+    headers: { Authorization: 'Bearer ' + token }
+  })
+}
