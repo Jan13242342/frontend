@@ -48,3 +48,36 @@ export function getDevicePara(token, params) {
     headers: { Authorization: 'Bearer ' + token }
   })
 }
+
+export function rpcChangePara(token, data) {
+  return request({
+    url: 'v1/device/rpc_change',
+    method: 'post',
+    data,
+    headers: { Authorization: 'Bearer ' + token }
+  })
+}
+
+export function getRpcHistory(token, params) {
+  return request({
+    url: 'v1/device/rpc_history',
+    method: 'get',
+    params,
+    headers: { Authorization: 'Bearer ' + token }
+  })
+}
+export function online_summary(token) {
+  return request({
+    url: 'v1/devices/online_summary',
+    method: 'get',
+    headers: { Authorization: 'Bearer ' + token }
+  })
+}
+export function alarm_summary(token) {
+  return request({
+    url: 'v1/alarms/unhandled_count',
+    method: 'get',
+    headers: { Authorization: 'Bearer ' + token }
+  })
+}
+

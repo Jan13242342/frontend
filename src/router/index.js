@@ -206,6 +206,18 @@ export const asyncRoutes = [
     meta: { title: 'Service', icon: 'el-icon-service', roles: ['service', 'admin'] },
     children: [
       {
+        path: 'dashboard',
+        name: 'ServiceDashboard',
+        component: () => import('@/views/service/dashboard.vue'),
+        meta: { title: 'Dashboard', roles: ['service', 'admin'] }
+      },
+      {
+        path: 'alarm',
+        name: 'ServiceAlarm',
+        component: () => import('@/views/service/alarm.vue'),
+        meta: { title: 'Alarm', roles: ['service', 'admin'] }
+      },
+      {
         path: 'parameter',
         name: 'Parameter',
         component: () => import('@/views/service/parameter.vue'),
