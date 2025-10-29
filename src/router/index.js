@@ -212,6 +212,12 @@ export const asyncRoutes = [
         meta: { title: 'Dashboard', roles: ['service', 'admin'] }
       },
       {
+        path: 'monitoring',
+        name: 'ServiceMonitoring',
+        component: () => import('@/views/service/ServiceMonitoring.vue'),
+        meta: { title: 'Energy Monitoring', roles: ['service', 'admin'] }
+      },
+      {
         path: 'alarm',
         name: 'ServiceAlarm',
         component: () => import('@/views/service/alarm.vue'),

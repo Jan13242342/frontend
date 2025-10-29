@@ -81,3 +81,24 @@ export function alarm_summary(token) {
   })
 }
 
+export function getRealtimeBySn(device_sn, token) {
+  return request({
+    url: `v1/realtime/by_sn/${device_sn}`,
+    method: 'get',
+    headers: { Authorization: 'Bearer ' + token }
+  })
+}
+
+export function getHistoryBySn({ device_sn, period = 'today', page = 1, page_size = 100 }, token) {
+  return request({
+    url: `v1/history/admin/by_sn`,
+    method: 'get',
+    headers: { Authorization: 'Bearer ' + token },
+    params: {
+      device_sn,
+      period,
+      page,
+      page_size
+    }
+  })
+}
