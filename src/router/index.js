@@ -191,12 +191,19 @@ export const asyncRoutes = [
   {
     path: '/admin',
     component: Layout,
+    meta: { title: 'Admin', icon: 'el-icon-user', roles: ['admin'] }, // 添加 meta
     children: [
       {
         path: 'index',
         name: 'Admin',
         component: () => import('@/views/admin/index'),
         meta: { title: 'Admin', icon: 'el-icon-user', roles: ['admin'] }
+      },
+      {
+        path: 'debug',
+        name: 'AdminDebug',
+        component: () => import('@/views/admin/debug.vue'),
+        meta: { title: 'Debug', icon: 'el-icon-setting', roles: ['admin'] }
       }
     ]
   },

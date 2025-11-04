@@ -19,7 +19,7 @@
       </el-form-item>
     </el-form>
     <div v-if="result" class="result">
-      <h3>Result</h3>
+      <h3>Send Result&&发送结果</h3>
       <pre>{{ result }}</pre>
     </div>
     <el-divider />
@@ -92,7 +92,7 @@ export default {
         }
         const res = await rpcChangePara(token, payload)
         this.result = res.data
-        this.$message.success('Parameter changed successfully')
+        this.$message.success('Parameter send successfully&参数下发成功')
       } catch (e) {
         this.result = null
         this.$message.error(
@@ -101,7 +101,7 @@ export default {
           e?.response?.data?.msg ||
           e?.response?.data?.detail?.msg ||
           e?.message ||
-          'Failed to change parameter'
+          'Failed to send parameter'
         )
       }
     },
