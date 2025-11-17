@@ -5,18 +5,12 @@
       <el-form-item label="Device SN">
         <el-input v-model="device_sn" placeholder="请输入设备SN" style="width: 240px;" />
       </el-form-item>
-      <el-form-item label="Parameter Name">
-        <el-input v-model="para_name" placeholder="请输入参数名" style="width: 240px;" />
-      </el-form-item>
-      <el-form-item label="Parameter Value">
-        <el-input v-model="para_value" placeholder="请输入参数值" style="width: 240px;" />
-      </el-form-item>
       <el-form-item label="Message">
         <el-input v-model="message" placeholder="请输入消息" style="width: 240px;" />
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" @click="callRpc">发送参数</el-button>
-        <el-button type="success" @click="subscribeTopic" style="margin-left: 10px;">订阅主题</el-button>
+        <el-button type="primary" @click="callRpc">发送调试请求</el-button>
+        <el-button type="success" @click="subscribeTopic" style="margin-left: 10px;">订阅调试数据</el-button>
       </el-form-item>
     </el-form>
     <div v-if="result" class="result">
@@ -67,7 +61,7 @@ export default {
   methods: {
     async callRpc() {
       const token = getToken()
-      if (!this.device_sn || !this.para_name || !this.para_value) {
+      if (!this.device_sn) {
         this.$message.error('请填写所有必填项')
         return
       }

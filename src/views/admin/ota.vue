@@ -6,11 +6,14 @@
       <el-form-item label="设备类型">
         <el-input v-model="latest_device_type" placeholder="如：esp32" style="width: 120px;" />
       </el-form-item>
+      <el-form-item label="硬件版本号">
+        <el-input v-model="latest_hardware_version" placeholder="如：v1.0" style="width: 120px;" />
+      </el-form-item>
       <el-form-item>
         <el-button
           type="info"
           @click="fetchLatestFirmware"
-          :disabled="!latest_device_type"
+          :disabled="!latest_device_type || !latest_hardware_version"
         >
           获取最新固件
         </el-button>
@@ -21,6 +24,36 @@
       <pre>{{ latestFirmware | pretty }}</pre>
     </div>
 
+    <!-- 获取最新测试/草稿固件区域 -->
+    <h2>获取最新测试/草稿固件</h2>
+    <el-form :inline="true" style="margin-bottom: 16px;">
+      <el-form-item label="设备类型">
+        <el-input v-model="staging_device_type" placeholder="如：esp32" style="width: 120px;" />
+      </el-form-item>
+      <el-form-item label="硬件版本号">
+        <el-input v-model="staging_hardware_version" placeholder="如：V1.0" style="width: 120px;" />
+      </el-form-item>
+      <el-form-item label="状态">
+        <el-select v-model="staging_status" placeholder="请选择" style="width: 120px;">
+          <el-option label="草稿 (draft)" value="draft" />
+          <el-option label="测试中 (testing)" value="testing" />
+        </el-select>
+      </el-form-item>
+      <el-form-item>
+        <el-button
+          type="info"
+          :disabled="!staging_device_type || !staging_hardware_version || !staging_status"
+          @click="fetchLatestStagingFirmware"
+        >
+          获取最新测试/草稿固件
+        </el-button>
+      </el-form-item>
+    </el-form>
+    <div v-if="latestStagingFirmware" class="result">
+      <h3>最新测试/草稿固件信息</h3>
+      <pre>{{ latestStagingFirmware | pretty }}</pre>
+    </div>
+
     <!-- OTA 文件上传区域 -->
     <h2>OTA 文件上传</h2>
     <el-form :inline="true" style="margin-bottom: 16px;">
@@ -28,7 +61,7 @@
         <el-input v-model="device_type" placeholder="如：esp32" style="width: 120px;" />
       </el-form-item>
       <el-form-item label="固件版本号">
-        <el-input v-model="version" placeholder="如：1.0.0" style="width: 120px;" />
+        <el-input v-model="version" placeholder="如：1.0.0-20250101" style="width: 240px;" />
       </el-form-item>
       <el-form-item label="最小硬件版本号">
         <el-input v-model="min_hardware_version" placeholder="如：v1.0" style="width: 120px;" />
@@ -97,6 +130,15 @@
           <a :href="scope.row.download_url" target="_blank">{{ scope.row.download_url }}</a>
         </template>
       </el-table-column>
+      <el-table-column label="操作" width="100">
+        <template slot-scope="scope">
+          <el-button
+            type="danger"
+            size="mini"
+            @click="handleDeleteFirmware(scope.row.id)"
+          >删除</el-button>
+        </template>
+      </el-table-column>
     </el-table>
     <div v-else-if="firmwareList && !firmwareList.length" style="color: #999; margin-bottom: 32px;">
       暂无数据
@@ -105,7 +147,7 @@
 </template>
 
 <script>
-import { uploadOta, getLatestFirmware, getFirmwareList } from '@/api/user'
+import { uploadOta, getLatestFirmware, getFirmwareList, deleteFirmware, getLatestStagingFirmware } from '@/api/user'
 import { getToken } from '@/utils/auth'
 
 export default {
@@ -120,11 +162,18 @@ export default {
       status: '',
       // 最新固件相关
       latest_device_type: '',
+      latest_hardware_version: '', // 新增硬件版本号
       latestFirmware: null,
       // 固件列表相关
       list_device_type: '',
+      list_hardware_version: '',
       list_status: '',
-      firmwareList: []
+      firmwareList: [],
+      // 最新测试/草稿固件相关
+      staging_device_type: '',
+      staging_hardware_version: '',
+      staging_status: '',
+      latestStagingFirmware: null
     }
   },
   methods: {
@@ -166,10 +215,31 @@ export default {
         return
       }
       try {
-        const res = await getLatestFirmware(this.latest_device_type, getToken())
+        const res = await getLatestFirmware(
+          this.latest_device_type,
+          getToken(),
+          this.latest_hardware_version // 可选
+        )
         this.latestFirmware = res.data
       } catch (e) {
         this.latestFirmware = { error: e.message }
+      }
+    },
+    async fetchLatestStagingFirmware() {
+      if (!this.staging_device_type || !this.staging_hardware_version || !this.staging_status) {
+        this.latestStagingFirmware = null
+        return
+      }
+      try {
+        const res = await getLatestStagingFirmware(
+          this.staging_device_type,
+          this.staging_hardware_version,
+          this.staging_status,
+          getToken()
+        )
+        this.latestStagingFirmware = res.data
+      } catch (e) {
+        this.latestStagingFirmware = { error: e?.response?.data?.detail || e.message }
       }
     },
     async fetchFirmwareList() {
@@ -178,7 +248,11 @@ export default {
         return
       }
       try {
-        const res = await getFirmwareList(this.list_device_type, getToken(), this.list_status)
+        const res = await getFirmwareList(
+          this.list_device_type,
+          getToken(),
+          this.list_status
+        )
         this.firmwareList = res.data.items || []
       } catch (e) {
         this.firmwareList = []
@@ -186,6 +260,22 @@ export default {
           e?.response?.data?.detail || e.message || '获取固件列表失败'
         )
       }
+    },
+    handleDeleteFirmware(id) {
+      this.$confirm('确定要删除该固件吗？', '确认删除', {
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(async() => {
+        try {
+          const token = getToken()
+          await deleteFirmware(id, token)
+          this.$message.success('固件删除成功')
+          this.fetchFirmwareList()
+        } catch (e) {
+          this.$message.error('固件删除失败')
+        }
+      })
     }
   },
   filters: {

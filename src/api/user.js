@@ -102,3 +102,66 @@ export function getHistoryBySn({ device_sn, period = 'today', page = 1, page_siz
     }
   })
 }
+
+export function uploadOta(token, file, device_type, version, status, min_hardware_version) {
+  const params = new URLSearchParams({
+    device_type,
+    version,
+    status,
+    min_hardware_version
+  }).toString()
+  const formData = new FormData()
+  formData.append('file', file)
+  return request({
+    url: `/v1/firmware/upload?${params}`,
+    method: 'post',
+    data: formData,
+    headers: {
+      Authorization: 'Bearer ' + token,
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}
+
+export function getLatestFirmware(device_type, token, hardware_version = '') {
+  const params = { device_type }
+  if (hardware_version) params.hardware_version = hardware_version
+  return request({
+    url: '/v1/firmware/latest',
+    method: 'get',
+    params,
+    headers: { Authorization: 'Bearer ' + token }
+  })
+}
+
+export function getFirmwareList(device_type, token, status = '') {
+  const params = { device_type }
+  if (status) params.status = status
+  return request({
+    url: '/v1/firmware/list',
+    method: 'get',
+    params,
+    headers: { Authorization: 'Bearer ' + token }
+  })
+}
+
+export function deleteFirmware(firmware_id, token) {
+  return request({
+    url: `/v1/firmware/${firmware_id}`,
+    method: 'delete',
+    headers: { Authorization: 'Bearer ' + token }
+  })
+}
+
+export function getLatestStagingFirmware(device_type, hardware_version, status, token) {
+  return request({
+    url: '/v1/firmware/latest-staging',
+    method: 'get',
+    params: {
+      device_type,
+      hardware_version,
+      status
+    },
+    headers: { Authorization: 'Bearer ' + token }
+  })
+}
