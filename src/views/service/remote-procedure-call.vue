@@ -1,9 +1,29 @@
 <template>
   <div class="rpc-page">
+    <!-- OTA快捷操作区域 -->
+    <h2>OTA Quick Actions</h2>
+    <el-form :inline="true" @submit.native.prevent style="margin-bottom: 24px;">
+      <el-form-item label="Device SN">
+        <el-input v-model="ota_sn" placeholder="Enter device SN" style="width: 240px;" />
+      </el-form-item>
+      <el-form-item>
+        <el-button type="success" @click="sendOtaDraft">一键OTA Draft</el-button>
+        <el-button type="info" @click="sendOtaLatest" style="margin-left: 10px;">一键OTA Latest</el-button>
+        <el-button type="warning" @click="sendOtaTesting" style="margin-left: 10px;">一键OTA Testing</el-button>
+      </el-form-item>
+    </el-form>
+    <div v-if="otaResult" class="result">
+      <h3>OTA Send Result</h3>
+      <pre>{{ otaResult | pretty }}</pre>
+    </div>
+
+    <el-divider />
+
+    <!-- RPC 参数下发区域 -->
     <h2>Remote Procedure Call</h2>
     <el-form @submit.native.prevent>
       <el-form-item label="Device SN">
-        <el-input v-model="device_sn" placeholder="Enter device SN" style="width: 240px;" />
+        <el-input v-model="device_sn" placeholder="Enter device SN" style="width: 240px; margin-right: 10px;" />
       </el-form-item>
       <el-form-item label="Parameter Name">
         <el-input v-model="para_name" placeholder="Enter parameter name" style="width: 240px;" />
@@ -19,10 +39,13 @@
       </el-form-item>
     </el-form>
     <div v-if="result" class="result">
-      <h3>Send Result&&发送结果</h3>
-      <pre>{{ result }}</pre>
+      <h3>Send Result & 发送结果</h3>
+      <pre>{{ result | pretty }}</pre>
     </div>
+
     <el-divider />
+
+    <!-- RPC 历史查询区域 -->
     <h3>RPC Change History</h3>
     <el-form :inline="true" @submit.native.prevent>
       <el-form-item label="Device SN">
@@ -65,11 +88,16 @@ export default {
   name: 'RemoteProcedureCallPage',
   data() {
     return {
+      // OTA快捷操作
+      ota_sn: '',
+      otaResult: null,
+      // RPC参数下发
       device_sn: '',
       para_name: '',
       para_value: '',
       message: '',
       result: null,
+      // RPC历史
       history_sn: '',
       history_status: '',
       history_operator: '',
@@ -77,6 +105,90 @@ export default {
     }
   },
   methods: {
+    async sendOtaDraft() {
+      const token = getToken()
+      if (!this.ota_sn) {
+        this.$message.error('Please enter device SN')
+        return
+      }
+      try {
+        const payload = {
+          device_sn: this.ota_sn,
+          para_name: '',
+          para_value: '',
+          message: 'ota draft'
+        }
+        const res = await rpcChangePara(token, payload)
+        this.otaResult = res.data
+        this.$message.success('OTA Draft sent successfully')
+      } catch (e) {
+        this.otaResult = null
+        this.$message.error(
+          e?.response?.data?.msg_en ||
+          e?.response?.data?.detail?.msg_en ||
+          e?.response?.data?.msg ||
+          e?.response?.data?.detail?.msg ||
+          e?.message ||
+          'Failed to send OTA Draft'
+        )
+      }
+    },
+    async sendOtaLatest() {
+      const token = getToken()
+      if (!this.ota_sn) {
+        this.$message.error('Please enter device SN')
+        return
+      }
+      try {
+        const payload = {
+          device_sn: this.ota_sn,
+          para_name: '',
+          para_value: '',
+          message: 'ota latest'
+        }
+        const res = await rpcChangePara(token, payload)
+        this.otaResult = res.data
+        this.$message.success('OTA Latest sent successfully')
+      } catch (e) {
+        this.otaResult = null
+        this.$message.error(
+          e?.response?.data?.msg_en ||
+          e?.response?.data?.detail?.msg_en ||
+          e?.response?.data?.msg ||
+          e?.response?.data?.detail?.msg ||
+          e?.message ||
+          'Failed to send OTA Latest'
+        )
+      }
+    },
+    async sendOtaTesting() {
+      const token = getToken()
+      if (!this.ota_sn) {
+        this.$message.error('Please enter device SN')
+        return
+      }
+      try {
+        const payload = {
+          device_sn: this.ota_sn,
+          para_name: '',
+          para_value: '',
+          message: 'ota testing'
+        }
+        const res = await rpcChangePara(token, payload)
+        this.otaResult = res.data
+        this.$message.success('OTA Testing sent successfully')
+      } catch (e) {
+        this.otaResult = null
+        this.$message.error(
+          e?.response?.data?.msg_en ||
+          e?.response?.data?.detail?.msg_en ||
+          e?.response?.data?.msg ||
+          e?.response?.data?.detail?.msg ||
+          e?.message ||
+          'Failed to send OTA Testing'
+        )
+      }
+    },
     async callRpc() {
       const token = getToken()
       if (!this.device_sn || !this.para_name || !this.para_value) {
@@ -92,7 +204,7 @@ export default {
         }
         const res = await rpcChangePara(token, payload)
         this.result = res.data
-        this.$message.success('Parameter send successfully&参数下发成功')
+        this.$message.success('Parameter send successfully & 参数下发成功')
       } catch (e) {
         this.result = null
         this.$message.error(
@@ -128,6 +240,11 @@ export default {
           'Failed to fetch history'
         )
       }
+    }
+  },
+  filters: {
+    pretty(val) {
+      return typeof val === 'string' ? val : JSON.stringify(val, null, 2)
     }
   }
 }

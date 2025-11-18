@@ -162,11 +162,10 @@ export default {
       status: '',
       // 最新固件相关
       latest_device_type: '',
-      latest_hardware_version: '', // 新增硬件版本号
+      latest_hardware_version: '',
       latestFirmware: null,
       // 固件列表相关
       list_device_type: '',
-      list_hardware_version: '',
       list_status: '',
       firmwareList: [],
       // 最新测试/草稿固件相关
@@ -210,7 +209,7 @@ export default {
       }
     },
     async fetchLatestFirmware() {
-      if (!this.latest_device_type) {
+      if (!this.latest_device_type || !this.latest_hardware_version) {
         this.latestFirmware = null
         return
       }
@@ -218,7 +217,7 @@ export default {
         const res = await getLatestFirmware(
           this.latest_device_type,
           getToken(),
-          this.latest_hardware_version // 可选
+          this.latest_hardware_version
         )
         this.latestFirmware = res.data
       } catch (e) {
@@ -294,17 +293,6 @@ export default {
   padding: 32px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-.admin-page h1 {
-  margin-bottom: 16px;
-  color: #e67e22;
-}
-.admin-page ul {
-  margin: 16px 0;
-  padding-left: 20px;
-}
-.admin-page li {
-  margin-bottom: 8px;
 }
 .result {
   margin-top: 32px;
