@@ -1,144 +1,290 @@
 <template>
   <div class="ha-dashboard">
-    <div class="dashboard-header">
-      <div class="header-left">
-        <h2 class="page-title">Energy Dashboard</h2>
+    <el-card class="device-list-card" style="margin-bottom: 24px;">
+      <div slot="header">
+        <span>My Devices ({{ deviceList.length }})</span>
       </div>
-      <div class="header-right">
-        <el-date-picker
-          v-model="currentDate"
-          type="date"
-          size="small"
-          :clearable="false"
-          class="custom-date-picker"
-        />
+      <div v-if="deviceList.length">
+        <el-button
+          v-for="dev in deviceList"
+          :key="dev.id"
+          :type="selectedDevice && selectedDevice.id === dev.id ? 'primary' : 'default'"
+          style="margin-right: 12px; margin-bottom: 8px;"
+          @click="selectDevice(dev)"
+        >
+          {{ dev.name }}
+        </el-button>
+      </div>
+      <div v-else>
+        <el-empty description="No devices" />
+      </div>
+    </el-card>
+
+    <div v-if="selectedDevice">
+      <div class="dashboard-header">
+        <div class="header-left">
+          <h2 class="page-title">Energy Dashboard - {{ selectedDevice.name }}</h2>
+        </div>
+        <div class="header-right">
+          <el-date-picker
+            v-model="currentDate"
+            type="date"
+            size="small"
+            :clearable="false"
+            class="custom-date-picker"
+          />
+        </div>
+      </div>
+
+      <div class="dashboard-container">
+
+        <div class="column-left">
+          <el-card class="ha-card usage-card">
+            <div slot="header" class="card-header">
+              <span>Energy Usage</span>
+              <el-tag size="mini" type="info">kWh</el-tag>
+            </div>
+            <div ref="barChart" v-loading="loadingCharts" class="bar-chart-box" />
+          </el-card>
+
+          <el-card class="ha-card solar-hist-card" style="margin-top: 20px;">
+            <div slot="header" class="card-header">Solar Production Forecast</div>
+            <div ref="lineChart" v-loading="loadingCharts" class="line-chart-box" />
+          </el-card>
+        </div>
+
+        <div class="column-right">
+
+          <el-card class="ha-card flow-card">
+            <div slot="header" class="card-header">Energy Distribution</div>
+            <div class="flow-wrapper">
+              <div class="flow-node node-top">
+                <div class="icon-bubble solar-bg"><i class="el-icon-sunny" /></div>
+                <div class="node-info">
+                  <span class="n-label">Solar</span>
+                  <span class="n-val">{{ flowData.solar }} kW</span>
+                </div>
+              </div>
+
+              <div class="flow-node node-left">
+                <div class="icon-bubble grid-bg"><i class="el-icon-s-grid" /></div>
+                <div class="node-info">
+                  <span class="n-label">Grid</span>
+                  <span class="n-val">{{ flowData.grid }} kW</span>
+                </div>
+              </div>
+
+              <div class="flow-node node-right">
+                <div class="icon-bubble home-bg"><i class="el-icon-s-home" /></div>
+                <div class="node-info">
+                  <span class="n-label">Home</span>
+                  <span class="n-val">{{ flowData.home }} kW</span>
+                </div>
+              </div>
+
+              <div class="flow-node node-bottom">
+                <div class="icon-bubble battery-bg"><i class="el-icon-cpu" /></div>
+                <div class="node-info">
+                  <span class="n-label">Battery</span>
+                  <span class="n-val">{{ flowData.battery }} kW</span>
+                </div>
+              </div>
+
+              <div class="lines-layer">
+                <div class="line-v-top" :class="{ 'anim-fwd': flowData.solar > 0 }"><div class="dot solar-dot" /></div>
+                <div class="line-h-left" :class="{ 'anim-fwd': flowData.grid > 0, 'anim-rev': flowData.grid < 0 }"><div class="dot grid-dot" /></div>
+                <div class="line-h-right anim-fwd"><div class="dot mix-dot" /></div>
+                <div class="line-v-bottom" :class="{ 'anim-fwd': flowData.battery > 0, 'anim-rev': flowData.battery < 0 }"><div class="dot battery-dot" /></div>
+              </div>
+            </div>
+          </el-card>
+
+          <el-card class="ha-card gauge-card">
+            <div slot="header" class="card-header">Self Sufficiency</div>
+            <div ref="gaugeChart" v-loading="loadingCharts" class="gauge-box" />
+            <div class="gauge-details">
+              <div class="detail-item">
+                <span class="d-label">Autonomy</span>
+                <span class="d-val">82%</span>
+              </div>
+              <div class="detail-item">
+                <span class="d-label">Ratio</span>
+                <span class="d-val">45%</span>
+              </div>
+            </div>
+          </el-card>
+
+        </div>
       </div>
     </div>
-
-    <div class="dashboard-container">
-
-      <div class="column-left">
-        <el-card class="ha-card usage-card">
-          <div slot="header" class="card-header">
-            <span>Energy Usage</span>
-            <el-tag size="mini" type="info">kWh</el-tag>
-          </div>
-          <div ref="barChart" class="bar-chart-box" />
-        </el-card>
-
-        <el-card class="ha-card solar-hist-card" style="margin-top: 20px;">
-          <div slot="header" class="card-header">Solar Production Forecast</div>
-          <div ref="lineChart" class="line-chart-box" />
-        </el-card>
-      </div>
-
-      <div class="column-right">
-
-        <el-card class="ha-card flow-card">
-          <div slot="header" class="card-header">Energy Distribution</div>
-
-          <div class="flow-wrapper">
-            <div class="flow-node node-top">
-              <div class="icon-bubble solar-bg"><i class="el-icon-sunny" /></div>
-              <div class="node-info">
-                <span class="n-label">Solar</span>
-                <span class="n-val">{{ flowData.solar }} kW</span>
-              </div>
-            </div>
-
-            <div class="flow-node node-left">
-              <div class="icon-bubble grid-bg"><i class="el-icon-s-grid" /></div>
-              <div class="node-info">
-                <span class="n-label">Grid</span>
-                <span class="n-val">{{ flowData.grid }} kW</span>
-              </div>
-            </div>
-
-            <div class="flow-node node-right">
-              <div class="icon-bubble home-bg"><i class="el-icon-s-home" /></div>
-              <div class="node-info">
-                <span class="n-label">Home</span>
-                <span class="n-val">{{ flowData.home }} kW</span>
-              </div>
-            </div>
-
-            <div class="flow-node node-bottom">
-              <div class="icon-bubble battery-bg"><i class="el-icon-cpu" /></div>
-              <div class="node-info">
-                <span class="n-label">Battery</span>
-                <span class="n-val">{{ flowData.battery }} kW</span>
-              </div>
-            </div>
-
-            <div class="lines-layer">
-              <div class="line-v-top" :class="{ 'anim-fwd': flowData.solar > 0 }"><div class="dot solar-dot" /></div>
-              <div class="line-h-left" :class="{ 'anim-fwd': flowData.grid > 0, 'anim-rev': flowData.grid < 0 }"><div class="dot grid-dot" /></div>
-              <div class="line-h-right anim-fwd"><div class="dot mix-dot" /></div>
-              <div class="line-v-bottom" :class="{ 'anim-fwd': flowData.battery > 0, 'anim-rev': flowData.battery < 0 }"><div class="dot battery-dot" /></div>
-            </div>
-          </div>
-        </el-card>
-
-        <el-card class="ha-card gauge-card">
-          <div slot="header" class="card-header">Self Sufficiency</div>
-          <div ref="gaugeChart" class="gauge-box" />
-          <div class="gauge-details">
-            <div class="detail-item">
-              <span class="d-label">Autonomy</span>
-              <span class="d-val">82%</span>
-            </div>
-            <div class="detail-item">
-              <span class="d-label">Ratio</span>
-              <span class="d-val">45%</span>
-            </div>
-          </div>
-        </el-card>
-
-      </div>
+    <div v-else>
+      <el-empty description="Please select a device" />
     </div>
   </div>
 </template>
 
 <script>
 import * as echarts from 'echarts'
+// 引入 debounce (可选, 但推荐)
+import { debounce } from 'lodash-es'
 
 export default {
   name: 'HAEnergyDashboard',
   data() {
     return {
+      // --- 设备 ---
+      deviceList: [],
+      selectedDevice: null,
+
+      // --- 状态 ---
+      loadingCharts: false,
+      liveInterval: null, // 实时模拟定时器
+
+      // --- 数据 ---
       currentDate: new Date(),
-      flowData: { solar: 3.2, grid: 0.5, home: 2.1, battery: 1.6 },
+      flowData: { solar: 0, grid: 0, home: 0, battery: 0 },
+
+      // --- ECharts 实例 ---
       barChart: null,
       gaugeChart: null,
-      lineChart: null
+      lineChart: null,
+
+      // (防抖的 resize 处理器)
+      debouncedResize: null
     }
   },
+
+  // 核心改动：使用 watch 监听 selectedDevice
+  watch: {
+    selectedDevice(newDevice, oldDevice) {
+      if (newDevice) {
+        console.log(`Device changed to: ${newDevice.name}`)
+        // 当设备变化时，加载新数据
+        this.loadDashboardData(newDevice.id)
+      } else {
+        // 如果没有选中设备（例如，设备列表为空时），确保销毁图表
+        this.disposeCharts()
+      }
+    }
+  },
+
   mounted() {
-    this.initCharts()
-    window.addEventListener('resize', this.handleResize)
-    setInterval(this.simulateLive, 3000)
+    // 1. (模拟) 获取设备列表
+    this.fetchDeviceList()
+
+    // 2. 创建防抖的 resize 处理器
+    this.debouncedResize = debounce(this.handleResize, 150)
+    window.addEventListener('resize', this.debouncedResize)
   },
+
   beforeDestroy() {
-    window.removeEventListener('resize', this.handleResize)
-    if (this.barChart) this.barChart.dispose()
-    if (this.gaugeChart) this.gaugeChart.dispose()
-    if (this.lineChart) this.lineChart.dispose()
+    // 3. 组件销毁时，清理所有资源
+    window.removeEventListener('resize', this.debouncedResize)
+    this.disposeCharts()
+    if (this.liveInterval) {
+      clearInterval(this.liveInterval)
+    }
   },
+
   methods: {
-    simulateLive() {
-      this.flowData.solar = (2 + Math.random()).toFixed(1)
-      this.flowData.grid = (Math.random() - 0.3).toFixed(1) // 可能为负(卖电)
+    /**
+     * 1. (模拟) 获取设备列表，并默认选中第一个
+     */
+    fetchDeviceList() {
+      // 模拟 API 调用
+      this.deviceList = [
+        { id: 1, name: 'Living Room Meter' },
+        { id: 2, name: 'Garage PV' },
+        { id: 3, name: 'Bedroom Meter' }
+      ]
+
+      // 默认选中第一个设备
+      // 这将自动触发上面的 'watch' 监听器，从而加载数据
+      if (this.deviceList.length) {
+        this.selectedDevice = this.deviceList[0]
+      }
     },
-    initCharts() {
-      this.renderBarChart()
-      this.renderGaugeChart()
-      this.renderLineChart()
+
+    /**
+     * 2. 切换设备
+     * (逻辑简化: 只需要更新 selectedDevice，其余的交给 watch)
+     */
+    selectDevice(dev) {
+      if (this.selectedDevice && this.selectedDevice.id === dev.id) {
+        return // 避免重复点击
+      }
+      this.selectedDevice = dev
     },
-    renderBarChart() {
+
+    /**
+     * 3. (模拟) 加载所有 Dashboard 数据
+     * 这是响应设备变化的核心
+     */
+    async loadDashboardData(deviceId) {
+      console.log(`Fetching data for device ${deviceId}...`)
+      this.loadingCharts = true
+
+      // 停止旧的实时模拟
+      if (this.liveInterval) clearInterval(this.liveInterval)
+
+      // --- 模拟 API 调用 ---
+      // (在真实项目中，这里应该是 const response = await api.getDashboard(deviceId))
+      const simulatedData = this.getSimulatedData(deviceId)
+      // ---------------------
+
+      // 更新流向图数据
+      this.flowData = simulatedData.flowData
+
+      // 关键：等待 DOM (v-if) 更新完成
+      await this.$nextTick()
+
+      // 初始化所有图表
+      this.initCharts(simulatedData)
+
+      this.loadingCharts = false
+
+      // 开启新的实时模拟
+      this.liveInterval = setInterval(this.simulateLive, 3000)
+    },
+
+    /**
+     * 4. 初始化所有图表 (或更新数据)
+     */
+    initCharts(data) {
+      // *必须* 先销毁旧实例，防止内存泄漏
+      this.disposeCharts()
+
+      // 渲染新图表
+      this.renderBarChart(data.barChartData)
+      this.renderLineChart(data.lineChartData)
+      this.renderGaugeChart(data.gaugeChartData)
+    },
+
+    /**
+     * 5. 销毁所有 ECharts 实例
+     */
+    disposeCharts() {
+      if (this.barChart) {
+        this.barChart.dispose()
+        this.barChart = null
+      }
+      if (this.lineChart) {
+        this.lineChart.dispose()
+        this.lineChart = null
+      }
+      if (this.gaugeChart) {
+        this.gaugeChart.dispose()
+        this.gaugeChart = null
+      }
+      console.log('Charts disposed.')
+    },
+
+    // --- 图表渲染方法 (已修改为接收数据) ---
+
+    renderBarChart(data) {
       if (!this.$refs.barChart) return
       this.barChart = echarts.init(this.$refs.barChart)
       const hours = Array.from({ length: 24 }, (_, i) => i)
-
       this.barChart.setOption({
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }},
         legend: { bottom: 0, icon: 'circle' },
@@ -147,23 +293,31 @@ export default {
         yAxis: { type: 'value', splitLine: { lineStyle: { type: 'dashed' }}},
         color: ['#03a9f4', '#ff9800', '#673ab7'], // Grid, Solar, Return
         series: [
-          { name: 'Grid', type: 'bar', stack: 'total', data: hours.map(() => Math.random()), barWidth: '50%' },
-          { name: 'Solar', type: 'bar', stack: 'total', data: hours.map(() => Math.random() * 2) },
-          { name: 'Return', type: 'bar', stack: 'return', data: hours.map(() => -Math.random() * 0.5) }
+          { name: 'Grid', type: 'bar', stack: 'total', data: data.grid, barWidth: '50%' },
+          { name: 'Solar', type: 'bar', stack: 'total', data: data.solar },
+          { name: 'Return', type: 'bar', stack: 'return', data: data.return }
         ]
       })
     },
-    renderLineChart() {
+
+    renderLineChart(data) {
       if (!this.$refs.lineChart) return
       this.lineChart = echarts.init(this.$refs.lineChart)
       this.lineChart.setOption({
         grid: { left: 40, right: 20, top: 20, bottom: 20 },
         xAxis: { type: 'category', data: ['00:00', '06:00', '12:00', '18:00', '23:59'], show: false },
         yAxis: { type: 'value', show: false },
-        series: [{ type: 'line', smooth: true, data: [0, 2, 8, 3, 0], areaStyle: { opacity: 0.2 }, itemStyle: { color: '#ff9800' }}]
+        series: [{
+          type: 'line',
+          smooth: true,
+          data: data.forecast, // 使用传入的数据
+          areaStyle: { opacity: 0.2 },
+          itemStyle: { color: '#ff9800' }
+        }]
       })
     },
-    renderGaugeChart() {
+
+    renderGaugeChart(data) {
       if (!this.$refs.gaugeChart) return
       this.gaugeChart = echarts.init(this.$refs.gaugeChart)
       this.gaugeChart.setOption({
@@ -172,21 +326,63 @@ export default {
           startAngle: 180, endAngle: 0,
           min: 0, max: 100,
           radius: '100%',
-          center: ['50%', '70%'], // 调整半圆位置
+          center: ['50%', '70%'],
           itemStyle: { color: '#4caf50' },
           progress: { show: true, width: 25 },
           pointer: { show: false },
           axisLine: { lineStyle: { width: 25, color: [[1, '#eee']] }},
           axisTick: { show: false }, splitLine: { show: false }, axisLabel: { show: false },
           detail: { offsetCenter: [0, -10], fontSize: 24, fontWeight: 'bold', formatter: '{value}%' },
-          data: [{ value: 82 }]
+          data: [{ value: data.sufficiency }] // 使用传入的数据
         }]
       })
     },
+
+    // --- 辅助方法 ---
+
     handleResize() {
+      // 防抖调用
       this.barChart && this.barChart.resize()
       this.gaugeChart && this.gaugeChart.resize()
       this.lineChart && this.lineChart.resize()
+    },
+
+    /**
+     * (模拟) 实时更新数据
+     */
+    simulateLive() {
+      // 只更新流向图数据
+      this.flowData.solar = (2 + Math.random() * (this.selectedDevice.id || 1)).toFixed(1)
+      this.flowData.grid = (Math.random() - 0.3).toFixed(1)
+      this.flowData.battery = (Math.random() * 2 - 1).toFixed(1)
+      this.flowData.home = (this.flowData.solar + this.flowData.grid + this.flowData.battery).toFixed(1)
+    },
+
+    /**
+     * (模拟) 获取假数据
+     */
+    getSimulatedData(deviceId) {
+      // 乘以 deviceId 以便让数据看起来不一样
+      const seed = deviceId || 1
+      return {
+        flowData: {
+          solar: (3.2 * seed).toFixed(1),
+          grid: (0.5 * seed).toFixed(1),
+          home: (2.1 * seed).toFixed(1),
+          battery: (1.6 * seed).toFixed(1)
+        },
+        barChartData: {
+          grid: Array.from({ length: 24 }, () => Math.random() * seed),
+          solar: Array.from({ length: 24 }, () => Math.random() * 2 * seed),
+          return: Array.from({ length: 24 }, () => -Math.random() * 0.5 * seed)
+        },
+        lineChartData: {
+          forecast: [0, 2 * seed, 8 * seed, 3 * seed, 0]
+        },
+        gaugeChartData: {
+          sufficiency: Math.floor(Math.random() * 50 + 50) // 50-100
+        }
+      }
     }
   }
 }
