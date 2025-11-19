@@ -10,7 +10,7 @@
       </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="callRpc">发送调试请求</el-button>
-        <el-button type="success" @click="subscribeTopic" style="margin-left: 10px;">订阅调试数据</el-button>
+        <el-button type="success" style="margin-left: 10px;" @click="subscribeTopic">订阅调试数据</el-button>
       </el-form-item>
     </el-form>
     <div v-if="result" class="result">

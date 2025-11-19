@@ -1,3 +1,4 @@
+
 <template>
   <div class="energy-history-page">
     <div class="area-row">
@@ -11,12 +12,12 @@
             style="width: 240px;"
             @keyup.enter="fetchRealtime"
           />
-          <el-button type="primary" @click="fetchRealtime" :loading="loading" style="margin-left: 10px;">Query</el-button>
+          <el-button type="primary" :loading="loading" style="margin-left: 10px;" @click="fetchRealtime">Query</el-button>
           <el-button
             type="success"
-            @click="toggleAutoRefresh"
             style="margin-left: 10px;"
             :disabled="loading"
+            @click="toggleAutoRefresh"
           >{{ autoRefresh ? 'Stop Auto Refresh' : 'Auto Refresh' }}</el-button>
         </div>
         <div class="main-row">
@@ -29,13 +30,13 @@
             </div>
             <div v-else class="no-data">No Data Available</div>
           </div>
-          <div class="chart-area" v-if="realtimeData">
+          <div v-if="realtimeData" class="chart-area">
             <div class="chart-title">P_A</div>
-            <div ref="chartA" class="energy-chart"></div>
+            <div ref="chartA" class="energy-chart" />
             <div class="chart-title">P_B</div>
-            <div ref="chartB" class="energy-chart"></div>
+            <div ref="chartB" class="energy-chart" />
             <div class="chart-title">P_C</div>
-            <div ref="chartC" class="energy-chart"></div>
+            <div ref="chartC" class="energy-chart" />
           </div>
         </div>
       </el-card>
@@ -57,7 +58,7 @@
             <el-option label="Quarter" value="quarter" />
             <el-option label="Year" value="year" />
           </el-select>
-          <el-button type="primary" @click="fetchHistory" :loading="historyLoading" style="margin-left: 10px;">Query</el-button>
+          <el-button type="primary" :loading="historyLoading" style="margin-left: 10px;" @click="fetchHistory">Query</el-button>
         </div>
         <div v-if="historyLoading" class="loading">Loading...</div>
         <div v-else-if="historyData && historyData.length > 0">
@@ -71,7 +72,7 @@
           </el-table>
           <!-- 柱状图区域 -->
           <div class="chart-title">History Bar Chart</div>
-          <div ref="historyBarChart" class="history-bar-chart"></div>
+          <div ref="historyBarChart" class="history-bar-chart" />
         </div>
         <div v-else class="no-data">No Data Available</div>
       </el-card>
@@ -107,6 +108,19 @@ export default {
       historyLoading: false,
       tableKeys: [],
       historyBarChart: null
+    }
+  },
+  beforeDestroy() {
+    if (this.timer) {
+      clearInterval(this.timer)
+      this.timer = null
+    }
+    if (this.chartA) { this.chartA.dispose(); this.chartA = null }
+    if (this.chartB) { this.chartB.dispose(); this.chartB = null }
+    if (this.chartC) { this.chartC.dispose(); this.chartC = null }
+    if (this.historyBarChart) {
+      this.historyBarChart.dispose()
+      this.historyBarChart = null
     }
   },
   methods: {
@@ -255,19 +269,6 @@ export default {
       } finally {
         this.historyLoading = false
       }
-    }
-  },
-  beforeDestroy() {
-    if (this.timer) {
-      clearInterval(this.timer)
-      this.timer = null
-    }
-    if (this.chartA) { this.chartA.dispose(); this.chartA = null }
-    if (this.chartB) { this.chartB.dispose(); this.chartB = null }
-    if (this.chartC) { this.chartC.dispose(); this.chartC = null }
-    if (this.historyBarChart) {
-      this.historyBarChart.dispose()
-      this.historyBarChart = null
     }
   }
 }

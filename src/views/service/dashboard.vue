@@ -1,40 +1,53 @@
 <template>
-  <div class="alarm-summary">
-    <el-card class="alarm-card">
-      <h3 class="title">Alarm & Device Summary</h3>
-      <div v-if="loading" class="loading">Loading...</div>
-      <div v-else-if="alarmSummary && deviceSummary">
-        <div class="summary-item">
-          <span class="label">Online Devices:</span>
-          <span class="value">{{ deviceSummary && deviceSummary.online_devices ? deviceSummary.online_devices : 0 }}</span>
+  <div class="alarm-summary-container">
+    <el-card class="dashboard-card" shadow="hover">
+      <div slot="header" class="card-header">
+        <div class="header-left">
+          <i class="el-icon-s-data header-icon" />
+          <span class="title">Monitor Summary</span>
         </div>
-        <div class="summary-item">
-          <span class="label">Total Devices:</span>
-          <span class="value">{{ deviceSummary && deviceSummary.total_devices ? deviceSummary.total_devices : 0 }}</span>
-        </div>
-        <div class="summary-item">
-          <span class="label">Offline Devices:</span>
-          <span class="value">{{ deviceSummary && deviceSummary.offline_devices ? deviceSummary.offline_devices : 0 }}</span>
-        </div>
-        <div class="summary-item">
-          <span class="label">Unhandled Alarms:</span>
-          <span class="value">{{ alarmSummary && alarmSummary.unhandled_alarm_count ? alarmSummary.unhandled_alarm_count : 0 }}</span>
-        </div>
-        <div class="level-title">Alarm Levels:</div>
-        <div class="level-list">
-          <div v-for="(count, level) in alarmSummary.level_counts" :key="level" class="level-item">
-            <span class="level-name">{{ level }}:</span>
-            <span class="level-value">{{ count ? count : 0 }}</span>
+      </div>
+
+      <div v-if="loading" class="loading-box">
+        <i class="el-icon-loading" /> Loading...
+      </div>
+
+      <div v-else>
+        <div class="kpi-row">
+          <div class="kpi-item">
+            <div class="kpi-label">Total Devices</div>
+            <div class="kpi-value primary-color">{{ safeData(deviceSummary.total_devices) }}</div>
+          </div>
+          <div class="kpi-divider" />
+          <div class="kpi-item">
+            <div class="kpi-label">Online</div>
+            <div class="kpi-value success-color">{{ safeData(deviceSummary.online_devices) }}</div>
+          </div>
+          <div class="kpi-divider" />
+          <div class="kpi-item">
+            <div class="kpi-label">Alarms</div>
+            <div class="kpi-value danger-color">{{ safeData(alarmSummary.unhandled_alarm_count) }}</div>
           </div>
         </div>
-        <!-- 新增：各等级比例饼图 -->
-        <div class="chart-title">Alarm Level Ratio</div>
-        <div ref="levelPie" class="level-pie-chart" />
-        <!-- 新增：在线与离线比例饼图 -->
-        <div class="chart-title">Online vs Offline Ratio</div>
-        <div ref="onlinePie" class="online-pie-chart" />
+
+        <el-divider class="custom-divider" />
+
+        <div class="charts-area">
+          <div class="chart-wrapper">
+            <div class="chart-header">
+              <i class="el-icon-connection" /> Device Status
+            </div>
+            <div ref="onlinePie" class="chart-canvas" style="height: 220px; width: 100%;" />
+          </div>
+
+          <div class="chart-wrapper">
+            <div class="chart-header">
+              <i class="el-icon-warning-outline" /> Alarm Levels
+            </div>
+            <div ref="levelPie" class="chart-canvas" style="height: 220px; width: 100%;" />
+          </div>
+        </div>
       </div>
-      <div v-else class="no-data">No Data Available</div>
     </el-card>
   </div>
 </template>
@@ -48,189 +61,200 @@ export default {
   name: 'AlarmAndDeviceSummary',
   data() {
     return {
-      alarmSummary: null,
-      deviceSummary: null,
+      alarmSummary: { level_counts: {}}, // 给个默认结构防止报错
+      deviceSummary: {},
       loading: false,
       levelPieChart: null,
       onlinePieChart: null
     }
   },
+  // 【关键修复 1】监听数据变化，数据变了再画图
   watch: {
-    alarmSummary() {
-      this.$nextTick(this.renderLevelPie)
+    deviceSummary: {
+      handler() { this.$nextTick(() => this.renderOnlinePie()) },
+      deep: true
     },
-    deviceSummary() {
-      this.$nextTick(this.renderOnlinePie)
+    alarmSummary: {
+      handler() { this.$nextTick(() => this.renderLevelPie()) },
+      deep: true
     }
   },
-  async mounted() {
-    this.loading = true
-    try {
-      const token = getToken()
-      const [alarmRes, deviceRes] = await Promise.all([
-        alarm_summary(token),
-        online_summary(token)
-      ])
-      this.alarmSummary = alarmRes.data || {}
-      this.deviceSummary = deviceRes.data || {}
-      this.$nextTick(() => {
-        this.renderLevelPie()
-        this.renderOnlinePie()
-      })
-    } catch (e) {
-      this.$message.error(
-        e?.response?.data?.msg_en ||
-        e?.response?.data?.detail?.msg_en ||
-        e?.response?.data?.msg ||
-        e?.response?.data?.detail?.msg ||
-        e?.message ||
-        'Failed to fetch data'
-      )
-    } finally {
-      this.loading = false
-    }
+  mounted() {
+    this.fetchData()
     window.addEventListener('resize', this.handleResize)
   },
   beforeDestroy() {
     window.removeEventListener('resize', this.handleResize)
-    if (this.levelPieChart) {
-      this.levelPieChart.dispose()
-      this.levelPieChart = null
-    }
-    if (this.onlinePieChart) {
-      this.onlinePieChart.dispose()
-      this.onlinePieChart = null
-    }
+    this.disposeCharts()
   },
   methods: {
-    handleResize() {
-      if (this.levelPieChart) this.levelPieChart.resize()
-      if (this.onlinePieChart) this.onlinePieChart.resize()
+    safeData(val) {
+      return val !== undefined && val !== null ? val : 0
     },
-    renderLevelPie() {
-      if (!this.alarmSummary || !this.alarmSummary.level_counts) return
-      const el = this.$refs.levelPie
-      if (!el) return
-      if (!this.levelPieChart) {
-        this.levelPieChart = echarts.init(el)
+    async fetchData() {
+      this.loading = true
+      try {
+        const token = getToken()
+        // 并行请求
+        const [alarmRes, deviceRes] = await Promise.all([
+          alarm_summary(token).catch(e => ({ data: { unhandled_alarm_count: 0, level_counts: {}}})),
+          online_summary(token).catch(e => ({ data: { total_devices: 0, online_devices: 0, offline_devices: 0 }}))
+        ])
+
+        this.alarmSummary = alarmRes.data || { level_counts: {}}
+        this.deviceSummary = deviceRes.data || {}
+
+        // 数据获取完，DOM更新后，强制重绘一次
+        this.$nextTick(() => {
+          this.renderOnlinePie()
+          this.renderLevelPie()
+        })
+      } catch (e) {
+        console.error('Summary Fetch Error:', e)
+      } finally {
+        this.loading = false
       }
-      const levelData = Object.entries(this.alarmSummary.level_counts).map(([level, count]) => ({
-        name: level,
-        value: count
-      }))
-      this.levelPieChart.setOption({
-        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-        series: [{
-          type: 'pie',
-          radius: '65%',
-          center: ['50%', '50%'],
-          data: levelData,
-          label: {
-            formatter: '{b}\n{d}%',
-            fontSize: 12
-          }
-        }]
-      })
     },
+
     renderOnlinePie() {
-      if (!this.deviceSummary) return
       const el = this.$refs.onlinePie
-      if (!el) return
-      if (!this.onlinePieChart) {
-        this.onlinePieChart = echarts.init(el)
+      // 【关键修复 2】如果没有找到 DOM，或者处于 loading，直接返回
+      if (!el || this.loading) return
+
+      if (!this.onlinePieChart) this.onlinePieChart = echarts.init(el)
+
+      const online = this.safeData(this.deviceSummary.online_devices)
+      const offline = this.safeData(this.deviceSummary.offline_devices)
+
+      // 【关键修复 3】如果数据全是 0，显示灰色占位圆环
+      let chartData = []
+      if (online === 0 && offline === 0) {
+        chartData = [{ value: 0, name: 'No Devices', itemStyle: { color: '#f2f2f2' }}]
+      } else {
+        chartData = [
+          { value: online, name: 'Online', itemStyle: { color: '#67C23A' }},
+          { value: offline, name: 'Offline', itemStyle: { color: '#F56C6C' }}
+        ]
       }
-      const online = this.deviceSummary.online_devices ? this.deviceSummary.online_devices : 0
-      const offline = this.deviceSummary.offline_devices ? this.deviceSummary.offline_devices : 0
+
       this.onlinePieChart.setOption({
-        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+        tooltip: { trigger: 'item' },
+        legend: { bottom: '0', left: 'center', icon: 'circle' },
         series: [{
+          name: 'Device Status',
           type: 'pie',
-          radius: '65%',
-          center: ['50%', '50%'],
-          data: [
-            { value: online, name: 'Online', itemStyle: { color: '#67C23A' }},
-            { value: offline, name: 'Offline', itemStyle: { color: '#F56C6C' }}
-          ],
-          label: {
-            formatter: '{b}\n{d}%',
-            fontSize: 12
-          }
+          radius: ['50%', '70%'],
+          center: ['50%', '45%'],
+          avoidLabelOverlap: false,
+          itemStyle: { borderRadius: 5, borderColor: '#fff', borderWidth: 2 },
+          label: { show: false, position: 'center' },
+          emphasis: { label: { show: true, fontSize: '16', fontWeight: 'bold' }},
+          data: chartData
         }]
-      })
+      }, true) // true 表示不合并，完全重绘
+    },
+
+    renderLevelPie() {
+      const el = this.$refs.levelPie
+      if (!el || this.loading) return
+
+      if (!this.levelPieChart) this.levelPieChart = echarts.init(el)
+
+      const counts = this.alarmSummary.level_counts || {}
+      let data = Object.keys(counts).map(key => ({ name: key, value: counts[key] }))
+
+      // 处理空数据
+      if (data.length === 0 || data.every(d => d.value === 0)) {
+        data = [{ value: 0, name: 'No Alarms', itemStyle: { color: '#f2f2f2' }}]
+      }
+
+      this.levelPieChart.setOption({
+        tooltip: { trigger: 'item' },
+        legend: { bottom: '0', left: 'center', icon: 'circle' },
+        series: [{
+          name: 'Alarm Level',
+          type: 'pie',
+          radius: ['50%', '70%'],
+          center: ['50%', '45%'],
+          itemStyle: { borderRadius: 5, borderColor: '#fff', borderWidth: 2 },
+          label: { show: false },
+          emphasis: { label: { show: true, fontSize: '14', fontWeight: 'bold' }},
+          data: data
+        }]
+      }, true)
+    },
+
+    handleResize() {
+      this.onlinePieChart && this.onlinePieChart.resize()
+      this.levelPieChart && this.levelPieChart.resize()
+    },
+    disposeCharts() {
+      if (this.onlinePieChart) { this.onlinePieChart.dispose(); this.onlinePieChart = null }
+      if (this.levelPieChart) { this.levelPieChart.dispose(); this.levelPieChart = null }
     }
   }
 }
 </script>
 
 <style scoped>
-.alarm-summary {
-  padding: 20px;
+.alarm-summary-container {
+  padding: 10px;
+  width: 100%;
 }
-.alarm-card {
-  width: 420px;
-  padding: 18px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+.dashboard-card {
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
-.title {
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 14px;
-}
-.summary-item {
+.card-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 7px;
+  align-items: center;
 }
-.label {
-  font-size: 14px;
-  color: #606266;
-}
-.value {
-  font-size: 14px;
-  font-weight: bold;
-  color: #409EFF;
-}
-.level-title {
-  font-size: 15px;
-  font-weight: bold;
-  margin-top: 14px;
-  margin-bottom: 7px;
-}
-.level-list {
+.header-left { display: flex; align-items: center; gap: 8px; }
+.header-icon { font-size: 18px; color: #409EFF; }
+.title { font-size: 16px; font-weight: 600; color: #303133; }
+
+/* KPI Styles */
+.kpi-row { display: flex; justify-content: space-around; align-items: center; padding: 15px 0; }
+.kpi-item { text-align: center; flex: 1; }
+.kpi-label { font-size: 12px; color: #909399; margin-bottom: 6px; }
+.kpi-value { font-size: 24px; font-weight: 700; line-height: 1.2; }
+.kpi-divider { width: 1px; height: 30px; background-color: #E4E7ED; }
+.primary-color { color: #409EFF; }
+.success-color { color: #67C23A; }
+.danger-color { color: #F56C6C; }
+.custom-divider { margin: 10px 0 20px 0; }
+
+/* Chart Area */
+.charts-area {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 24px;
 }
-.level-item {
-  display: flex;
-  justify-content: space-between;
+.chart-wrapper {
+  background: #F9FAFC;
+  border-radius: 8px;
+  padding: 15px;
+  /* 确保容器撑开 */
+  flex: 1;
 }
-.level-name {
-  font-size: 13px;
-  color: #909399;
-}
-.level-value {
-  font-size: 13px;
-  font-weight: bold;
-  color: #F56C6C;
-}
-.chart-title {
-  font-size: 15px;
-  font-weight: bold;
-  margin-top: 18px;
-  margin-bottom: 8px;
-}
-.level-pie-chart,
-.online-pie-chart {
-  width: 100%;
-  height: 180px;
-  min-height: 120px;
-  margin-bottom: 10px;
-}
-.loading, .no-data {
-  text-align: center;
+.chart-header {
   font-size: 14px;
-  color: #909399;
-  margin: 20px 0;
+  font-weight: 600;
+  color: #606266;
+  margin-bottom: 15px;
+  display: flex; align-items: center; gap: 6px;
+}
+.chart-canvas {
+  width: 100%;
+  /* 显式高度非常重要 */
+  min-height: 220px;
+}
+.loading-box { padding: 40px 0; text-align: center; color: #909399; }
+
+/* 宽屏并排 */
+@media screen and (min-width: 1200px) {
+  .charts-area { flex-direction: row; }
 }
 </style>

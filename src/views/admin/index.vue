@@ -1,225 +1,308 @@
 <template>
-  <div class="admin-page">
-    <!-- 获取最新固件区域 -->
-    <h2>获取最新固件</h2>
-    <el-form :inline="true" style="margin-bottom: 16px;">
-      <el-form-item label="设备类型">
-        <el-input v-model="latest_device_type" placeholder="如：esp32" style="width: 120px;" />
-      </el-form-item>
-      <el-form-item>
-        <el-button
-          type="info"
-          @click="fetchLatestFirmware"
-          :disabled="!latest_device_type"
-        >
-          获取最新固件
-        </el-button>
-      </el-form-item>
-    </el-form>
-    <div v-if="latestFirmware" class="result">
-      <h3>最新固件信息</h3>
-      <pre>{{ latestFirmware | pretty }}</pre>
-    </div>
+  <div class="rpc-page">
 
-    <!-- OTA 文件上传区域 -->
-    <h2>OTA 文件上传</h2>
-    <el-form :inline="true" style="margin-bottom: 16px;">
-      <el-form-item label="设备类型">
-        <el-input v-model="device_type" placeholder="如：esp32" style="width: 120px;" />
-      </el-form-item>
-      <el-form-item label="固件版本号">
-        <el-input v-model="version" placeholder="如：1.0.0" style="width: 120px;" />
-      </el-form-item>
-      <el-form-item label="最小硬件版本号">
-        <el-input v-model="min_hardware_version" placeholder="如：v1.0" style="width: 120px;" />
-      </el-form-item>
-      <el-form-item label="状态">
-        <el-select v-model="status" placeholder="请选择固件状态" style="width: 120px;">
-          <el-option label="草稿 (draft)" value="draft" />
-          <el-option label="测试中 (testing)" value="testing" />
-          <el-option label="已发布 (released)" value="released" />
-          <el-option label="已废弃 (deprecated)" value="deprecated" />
-        </el-select>
-      </el-form-item>
-    </el-form>
-    <el-upload
-      action=""
-      :before-upload="beforeUpload"
-      :show-file-list="false"
-      :http-request="customUpload"
-    >
-      <el-button type="primary">选择OTA文件并上传</el-button>
-    </el-upload>
-    <div v-if="uploadResult" class="result">
-      <h3>上传结果</h3>
-      <pre>{{ uploadResult }}</pre>
-    </div>
+    <el-card class="box-card" style="margin-bottom: 24px;">
+      <div slot="header" class="clearfix">
+        <span>🚀 Remote Device Control</span>
+      </div>
 
-    <!-- 固件列表区域 -->
-    <h2>固件列表</h2>
-    <el-form :inline="true" style="margin-bottom: 16px;">
-      <el-form-item label="设备类型">
-        <el-input v-model="list_device_type" placeholder="如：esp32" style="width: 120px;" />
-      </el-form-item>
-      <el-form-item label="状态">
-        <el-select v-model="list_status" placeholder="全部" style="width: 120px;">
-          <el-option label="全部" value="" />
-          <el-option label="草稿 (draft)" value="draft" />
-          <el-option label="测试中 (testing)" value="testing" />
-          <el-option label="已发布 (released)" value="released" />
-          <el-option label="已废弃 (deprecated)" value="deprecated" />
-        </el-select>
-      </el-form-item>
-      <el-form-item>
-        <el-button
-          type="info"
-          @click="fetchFirmwareList"
-          :disabled="!list_device_type"
-        >
-          获取固件列表
-        </el-button>
-      </el-form-item>
-    </el-form>
-    <el-table
-      v-if="firmwareList && firmwareList.length"
-      :data="firmwareList"
-      style="width: 100%; margin-bottom: 32px;"
-      size="small"
-      border
-    >
-      <el-table-column prop="version" label="版本号" width="120" />
-      <el-table-column prop="status" label="状态" width="100" />
-      <el-table-column prop="min_hardware_version" label="最小硬件版本" width="120" />
-      <el-table-column prop="uploaded_at" label="上传时间" width="180" />
-      <el-table-column prop="notes" label="备注" />
-      <el-table-column prop="download_url" label="下载链接" width="200">
-        <template slot-scope="scope">
-          <a :href="scope.row.download_url" target="_blank">{{ scope.row.download_url }}</a>
-        </template>
-      </el-table-column>
-    </el-table>
-    <div v-else-if="firmwareList && !firmwareList.length" style="color: #999; margin-bottom: 32px;">
-      暂无数据
-    </div>
+      <h3>Remote Procedure Call</h3>
+      <el-form
+        ref="rpcForm"
+        :model="rpcForm"
+        :rules="rpcRules"
+        label-width="120px"
+        @submit.native.prevent
+      >
+        <el-form-item label="Device SN" prop="device_sn">
+          <el-input v-model="rpcForm.device_sn" placeholder="Enter device SN" style="width: 280px;" />
+        </el-form-item>
+
+        <el-row :gutter="20">
+          <el-col :xs="24" :sm="12">
+            <el-form-item label="Param Name" prop="para_name">
+              <el-input v-model="rpcForm.para_name" placeholder="Enter parameter name" style="width: 280px;" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12">
+            <el-form-item label="Param Value" prop="para_value">
+              <el-input v-model="rpcForm.para_value" placeholder="Enter parameter value" style="width: 280px;" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-form-item label="Message">
+          <el-input v-model="rpcForm.message" placeholder="Enter message (optional)" style="width: 280px;" />
+        </el-form-item>
+
+        <el-form-item>
+          <el-button type="primary" :loading="loadingRpc" @click="submitRpcForm">Change Parameter</el-button>
+        </el-form-item>
+      </el-form>
+      <div v-if="result" class="result">
+        <h3>Send Result & 发送结果</h3>
+        <pre>{{ result | pretty }}</pre>
+      </div>
+
+      <el-divider />
+
+      <h3>⚡️ OTA Quick Actions</h3>
+      <el-form :inline="true" style="margin-bottom: 24px;" @submit.native.prevent>
+        <el-form-item label="Device SN">
+          <el-input
+            v-model="rpcForm.device_sn"
+            placeholder="Enter device SN from above"
+            style="width: 280px;"
+          />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="success" :disabled="!rpcForm.device_sn" :loading="loadingRpc" @click="sendOtaAction('draft')">一键OTA Draft</el-button>
+          <el-button type="info" :disabled="!rpcForm.device_sn" :loading="loadingRpc" style="margin-left: 10px;" @click="sendOtaAction('latest')">一键OTA Latest</el-button>
+          <el-button type="warning" :disabled="!rpcForm.device_sn" :loading="loadingRpc" style="margin-left: 10px;" @click="sendOtaAction('testing')">一键OTA Testing</el-button>
+        </el-form-item>
+      </el-form>
+      <div v-if="otaResult" class="result">
+        <h3>OTA Send Result</h3>
+        <pre>{{ otaResult | pretty }}</pre>
+      </div>
+
+    </el-card>
+
+    <el-card class="box-card">
+      <div slot="header" class="clearfix">
+        <span>📊 RPC Change History</span>
+      </div>
+
+      <el-form :inline="true" @submit.native.prevent>
+        <el-form-item label="Device SN">
+          <el-input v-model="history_sn" placeholder="Enter device SN" style="width: 180px;" clearable />
+        </el-form-item>
+        <el-form-item label="Status">
+          <el-select v-model="history_status" placeholder="Select status" style="width: 120px;" clearable>
+            <el-option label="Pending" value="pending" />
+            <el-option label="Success" value="success" />
+            <el-option label="Failed" value="failed" />
+            <el-option label="Error" value="error" />
+            <el-option label="Timeout" value="timeout" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="Operator">
+          <el-input v-model="history_operator" placeholder="Operator" style="width: 120px;" clearable />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" :loading="loadingHistory" @click="fetchHistory">Query History</el-button>
+        </el-form-item>
+      </el-form>
+
+      <el-table
+        v-loading="loadingHistory"
+        :data="history"
+        style="width: 100%; margin-top: 20px;"
+        :empty-text="history_sn ? '未找到该设备的下发记录' : '请先输入查询条件'"
+      >
+        <el-table-column prop="device_sn" label="Device SN" width="180" />
+        <el-table-column prop="para_name" label="Parameter" width="150" />
+        <el-table-column prop="para_value" label="Value" width="150" show-overflow-tooltip />
+        <el-table-column prop="operator" label="Operator" width="120" />
+        <el-table-column prop="status" label="Status" width="100">
+          <template slot-scope="scope">
+            <el-tag :type="getStatusTag(scope.row.status)" size="small">{{ scope.row.status }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="message" label="Message" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="created_at" label="Created At" width="180" />
+        <el-table-column prop="confirmed_at" label="Confirmed At" width="180" />
+      </el-table>
+    </el-card>
+
   </div>
 </template>
 
 <script>
-import { uploadOta, getLatestFirmware, getFirmwareList } from '@/api/user'
+import { rpcChangePara, getRpcHistory } from '@/api/user'
 import { getToken } from '@/utils/auth'
 
 export default {
-  name: 'AdminPage',
-  data() {
-    return {
-      // OTA上传相关
-      uploadResult: null,
-      device_type: '',
-      version: '',
-      min_hardware_version: '',
-      status: '',
-      // 最新固件相关
-      latest_device_type: '',
-      latestFirmware: null,
-      // 固件列表相关
-      list_device_type: '',
-      list_status: '',
-      firmwareList: []
-    }
-  },
-  methods: {
-    beforeUpload(file) {
-      if (!this.device_type || !this.version || !this.min_hardware_version || !this.status) {
-        this.$message.error('请填写所有必填项')
-        return false
-      }
-      const isBin = file.name.endsWith('.bin') || file.name.endsWith('.zip')
-      if (!isBin) {
-        this.$message.error('只能上传 .bin 或 .zip 文件')
-        return false
-      }
-      return true
-    },
-    async customUpload(option) {
-      try {
-        const token = getToken()
-        const res = await uploadOta(
-          token,
-          option.file,
-          this.device_type,
-          this.version,
-          this.status,
-          this.min_hardware_version
-        )
-        this.$message.success('上传成功')
-        this.uploadResult = JSON.stringify(res.data, null, 2)
-        option.onSuccess && option.onSuccess(res.data)
-      } catch (e) {
-        this.$message.error('上传失败')
-        this.uploadResult = e.message
-        option.onError && option.onError(e)
-      }
-    },
-    async fetchLatestFirmware() {
-      if (!this.latest_device_type) {
-        this.latestFirmware = null
-        return
-      }
-      try {
-        const res = await getLatestFirmware(this.latest_device_type, getToken())
-        this.latestFirmware = res.data
-      } catch (e) {
-        this.latestFirmware = { error: e.message }
-      }
-    },
-    async fetchFirmwareList() {
-      if (!this.list_device_type) {
-        this.firmwareList = []
-        return
-      }
-      try {
-        const res = await getFirmwareList(this.list_device_type, getToken(), this.list_status)
-        this.firmwareList = res.data.items || []
-      } catch (e) {
-        this.firmwareList = []
-        this.$message.error(
-          e?.response?.data?.detail || e.message || '获取固件列表失败'
-        )
-      }
-    }
-  },
+  name: 'RemoteProcedureCallPage',
   filters: {
     pretty(val) {
       return typeof val === 'string' ? val : JSON.stringify(val, null, 2)
+    }
+  },
+  data() {
+    return {
+      // Loading 状态
+      loadingRpc: false,
+      loadingHistory: false,
+
+      // --- OTA快捷操作 ---
+      // ota_sn: '',  // <-- 已移除，复用 rpcForm.device_sn
+      otaResult: null,
+
+      // --- RPC参数下发 (统一为一个对象) ---
+      rpcForm: {
+        device_sn: '',
+        para_name: '',
+        para_value: '',
+        message: ''
+      },
+      rpcRules: {
+        device_sn: [{ required: true, message: '请输入设备SN', trigger: 'blur' }],
+        para_name: [{ required: true, message: '请输入参数名称', trigger: 'blur' }],
+        para_value: [{ required: true, message: '请输入参数值', trigger: 'blur' }]
+      },
+      result: null,
+
+      // --- RPC历史 ---
+      history_sn: '',
+      history_status: '',
+      history_operator: '',
+      history: []
+    }
+  },
+  methods: {
+    // --- 辅助方法 ---
+    getStatusTag(status) {
+      const map = {
+        success: 'success',
+        pending: 'info',
+        failed: 'danger',
+        error: 'danger',
+        timeout: 'warning'
+      }
+      return map[status.toLowerCase()] || 'info'
+    },
+    getErrorMessage(e) {
+      return (
+        e?.response?.data?.msg_en ||
+        e?.response?.data?.detail?.msg_en ||
+        e?.response?.data?.msg ||
+        e?.response?.data?.detail?.msg ||
+        e?.message ||
+        '请求失败'
+      )
+    },
+
+    // --- OTA 统一方法 (重构) ---
+    async sendOtaAction(type) {
+      const token = getToken()
+
+      // 关键改动：检查 rpcForm.device_sn
+      if (!this.rpcForm.device_sn) {
+        this.$message.error('Please enter device SN')
+        return
+      }
+
+      this.loadingRpc = true
+      try {
+        const payload = {
+          // 关键改动：使用 rpcForm.device_sn
+          device_sn: this.rpcForm.device_sn,
+          para_name: 'ota_action',
+          para_value: type,
+          message: `ota ${type}`
+        }
+        const res = await rpcChangePara(token, payload)
+        this.otaResult = res.data
+        this.$message.success(`OTA ${type.toUpperCase()} sent successfully`)
+      } catch (e) {
+        this.otaResult = null
+        this.$message.error(this.getErrorMessage(e))
+      } finally {
+        this.loadingRpc = false
+      }
+    },
+
+    // --- RPC 参数下发 (优化：使用表单验证) ---
+    submitRpcForm() {
+      this.$refs.rpcForm.validate(async(valid) => {
+        if (valid) {
+          await this.callRpc()
+        } else {
+          this.$message.error('请填写完整的必填项')
+          return false
+        }
+      })
+    },
+    async callRpc() {
+      const token = getToken()
+      this.loadingRpc = true
+      try {
+        const res = await rpcChangePara(token, this.rpcForm)
+        this.result = res.data
+        this.$message.success('Parameter send successfully & 参数下发成功')
+      } catch (e) {
+        this.result = null
+        this.$message.error(this.getErrorMessage(e))
+      } finally {
+        this.loadingRpc = false
+      }
+    },
+
+    // --- RPC 历史查询 ---
+    async fetchHistory() {
+      const token = getToken()
+      this.loadingHistory = true
+      this.history = [] // 清空旧数据
+      const params = {
+        device_sn: this.history_sn || undefined,
+        status: this.history_status || undefined,
+        operator: this.history_operator || undefined,
+        page: 1,
+        page_size: 40
+      }
+      try {
+        const res = await getRpcHistory(token, params)
+        this.history = res.data.items || []
+        if (this.history.length === 0) {
+          this.$message.info('未找到符合条件的记录')
+        }
+      } catch (e) {
+        this.history = []
+        this.$message.error(this.getErrorMessage(e))
+      } finally {
+        this.loadingHistory = false
+      }
     }
   }
 }
 </script>
 
 <style scoped>
-.admin-page {
-  max-width: 600px;
-  margin: 40px auto;
-  background: #fff;
-  padding: 32px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+.rpc-page {
+  padding: 40px;
 }
-.admin-page h1 {
-  margin-bottom: 16px;
-  color: #e67e22;
+/* 卡片标题 */
+.box-card ::v-deep .el-card__header {
+  background-color: #f5f7fa;
 }
-.admin-page ul {
-  margin: 16px 0;
-  padding-left: 20px;
+.box-card span {
+  font-weight: bold;
+  font-size: 18px;
+  color: #409EFF;
 }
-.admin-page li {
-  margin-bottom: 8px;
+
+/* 卡片内部的子标题 */
+.box-card h3 {
+  margin-top: 0; /* 移除卡片内第一个h3的上边距 */
+  margin-bottom: 20px;
+  color: #303133;
 }
+
 .result {
-  margin-top: 32px;
+  margin-top: 24px;
   background: #f5f7fa;
   padding: 20px;
   border-radius: 6px;
+  border: 1px solid #ebeef5;
+  white-space: pre-wrap; /* 允许文本换行 */
 }
+.result pre {
+    margin: 0;
+    overflow-x: auto; /* 确保 JSON 格式化后不溢出 */
+}
+
+/* 调整表单项宽度，使其在卡片内更协调 */
+/* 统一一个宽度或使用百分比 */
+/* 示例中已使用内联style设置，这里保留 */
 </style>
