@@ -263,9 +263,6 @@ export default {
       latestStagingFirmware: null
     }
   },
-  mounted() {
-    this.fetchFirmwareList()
-  },
   methods: {
     // --- 辅助方法 ---
     getStatusTag(status) {

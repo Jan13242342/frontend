@@ -165,3 +165,13 @@ export function getLatestStagingFirmware(device_type, hardware_version, status, 
     headers: { Authorization: 'Bearer ' + token }
   })
 }
+
+// New: list firmware audit logs
+export function getFirmwareAuditLog(params, token) {
+  return request({
+    url: '/v1/firmware/audit-log',
+    method: 'get',
+    params,
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  })
+}
