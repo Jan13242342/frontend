@@ -175,3 +175,12 @@ export function getFirmwareAuditLog(params, token) {
     headers: token ? { Authorization: `Bearer ${token}` } : {}
   })
 }
+
+export function getAllAlarms(params = {}, token) {
+  return request({
+    url: '/v1/alarms/admin',
+    method: 'get',
+    params,
+    headers: token ? { Authorization: 'Bearer ' + token } : {}
+  })
+}
