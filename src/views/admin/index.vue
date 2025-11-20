@@ -195,9 +195,6 @@ export default {
       currentRow: null
     }
   },
-  mounted() {
-    this.fetchAlarms()
-  },
   methods: {
     getStatusType(status) {
       return this.statusMap[status] ? this.statusMap[status].type : 'info'
